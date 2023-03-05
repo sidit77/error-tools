@@ -3,15 +3,15 @@ use std::error::Error;
 use std::ops::{Deref, DerefMut};
 
 #[derive(Default, Debug, Copy, Clone, Eq, PartialEq, PartialOrd, Ord, Hash)]
-pub struct OptionIsNoneError;
+pub struct NoValue;
 
-impl Display for OptionIsNoneError {
+impl Display for NoValue {
     fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
         write!(f, "an Option<T> was `None`")
     }
 }
 
-impl Error for OptionIsNoneError { }
+impl Error for NoValue { }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum EitherError<L, R> {

@@ -1,7 +1,7 @@
 pub mod errors;
 
 use std::fmt::{Debug, Display};
-use errors::{EitherError, ErrorWrapper, OptionIsNoneError};
+use errors::{EitherError, ErrorWrapper, NoValue};
 
 pub trait IgnoreResult {
     fn ignore(self) -> ();
@@ -14,27 +14,32 @@ impl<T, E> IgnoreResult for Result<T, E>  {
 }
 
 #[cfg(log)]
-pub trait LogResult {
-    fn log(self, level: log::Level) -> Self;
+pub trait LogResultExt<T> {
+    fn log(self, msg: &str) -> Self;
+    fn log_ok(self, msg: &str) -> Option<T>;
 }
 
 #[cfg(log)]
-impl<T, E: core::fmt::Display> LogResult for Result<T, E> {
-    fn log(self, level: log::Level) -> Self {
+impl<T, E: Display> LogResultExt<T> for Result<T, E> {
+    fn log(self, msg: &str) -> Self {
         if let Err(err) = &self {
-            log::log!(level, "{}", err);
+            log::warn!("{}: {}", msg, err);
         }
         self
     }
+
+    fn log_ok(self, msg: &str) -> Option<T> {
+        self.log(msg).ok()
+    }
 }
 
-pub trait OptionToError<T> {
-    fn err(self) -> Result<T, OptionIsNoneError>;
+pub trait SomeOptionExt<T> {
+    fn some(self) -> Result<T, NoValue>;
 }
 
-impl<T> OptionToError<T> for Option<T> {
-    fn err(self) -> Result<T, OptionIsNoneError> {
-        self.ok_or(OptionIsNoneError::default())
+impl<T> SomeOptionExt<T> for Option<T> {
+    fn some(self) -> Result<T, NoValue> {
+        self.ok_or(NoValue::default())
     }
 }
 
@@ -60,9 +65,9 @@ impl<T, E1, E2> TransposeError<T, E1, E2> for Result<Result<T, E2>, E1> {
 //    }
 //}
 
-impl<T, E> TransposeError<T, E, OptionIsNoneError> for Result<Option<T>, E>{
-    fn transpose_err(self) -> Result<T, EitherError<E, OptionIsNoneError>> {
-        self.map(OptionToError::err).transpose_err()
+impl<T, E> TransposeError<T, E, NoValue> for Result<Option<T>, E>{
+    fn transpose_err(self) -> Result<T, EitherError<E, NoValue>> {
+        self.map(Option::some).transpose_err()
     }
 }
 
@@ -81,7 +86,7 @@ impl<T, E: Display + Debug> WrapError<T, E> for Result<T, E> {
 #[cfg(test)]
 mod tests {
     use std::error::Error;
-    use crate::{IgnoreResult, OptionIsNoneError, OptionToError, TransposeError, WrapError};
+    use crate::{IgnoreResult, NoValue, SomeOptionExt, TransposeError, WrapError};
 
     #[test]
     fn test_ignore() {
@@ -91,10 +96,10 @@ mod tests {
     #[test]
     fn test_option_error() {
         let mut value: Option<i32> = Some(12);
-        assert_eq!(value.err(), Ok(12));
+        assert_eq!(value.some(), Ok(12));
         value = None;
-        assert_eq!(value.err(), Err(OptionIsNoneError));
-        assert_eq!(value.err().ok(), None);
+        assert_eq!(value.some(), Err(NoValue));
+        assert_eq!(value.some().ok(), None);
     }
 
     #[test]
