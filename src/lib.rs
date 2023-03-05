@@ -1,4 +1,6 @@
 pub mod errors;
+#[cfg(feature = "log")]
+pub mod log;
 
 use std::fmt::{Debug, Display};
 use errors::{EitherError, ErrorWrapper, NoValue};
@@ -10,26 +12,6 @@ pub trait IgnoreResult {
 impl<T, E> IgnoreResult for Result<T, E>  {
     fn ignore(self) -> () {
         ()
-    }
-}
-
-#[cfg(log)]
-pub trait LogResultExt<T> {
-    fn log(self, msg: &str) -> Self;
-    fn log_ok(self, msg: &str) -> Option<T>;
-}
-
-#[cfg(log)]
-impl<T, E: Display> LogResultExt<T> for Result<T, E> {
-    fn log(self, msg: &str) -> Self {
-        if let Err(err) = &self {
-            log::warn!("{}: {}", msg, err);
-        }
-        self
-    }
-
-    fn log_ok(self, msg: &str) -> Option<T> {
-        self.log(msg).ok()
     }
 }
 
