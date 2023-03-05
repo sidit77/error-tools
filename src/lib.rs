@@ -1,6 +1,10 @@
 pub mod errors;
 #[cfg(feature = "log")]
 pub mod log;
+#[cfg(feature = "tao")]
+pub mod tao;
+#[cfg(feature = "gui")]
+pub mod gui;
 
 use std::fmt::{Debug, Display};
 use errors::{EitherError, ErrorWrapper, NoValue};
@@ -64,11 +68,19 @@ impl<T, E: Display + Debug> WrapError<T, E> for Result<T, E> {
     }
 }
 
+pub trait Try {}
+impl<T> Try for Option<T> {}
+impl<T, E> Try for Result<T, E> {}
+
+pub fn try_now<T: Try>(func: impl FnOnce() -> T) -> T {
+    func()
+}
+
 
 #[cfg(test)]
 mod tests {
     use std::error::Error;
-    use crate::{IgnoreResult, NoValue, SomeOptionExt, TransposeError, WrapError};
+    use crate::{IgnoreResult, NoValue, SomeOptionExt, TransposeError, try_now, WrapError};
 
     #[test]
     fn test_ignore() {
@@ -109,6 +121,16 @@ mod tests {
         }
 
         assert_eq!(format!("{:?}", generic_err()), "Err(123)")
+    }
+
+    #[test]
+    fn test_try() {
+
+        let x = try_now(|| {
+            None?;
+            Some(1)
+        });
+        assert_eq!(x, None);
     }
 
 }

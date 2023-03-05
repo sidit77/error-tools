@@ -5,5 +5,20 @@ edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[features]
+gui = ["windows-sys"]
+
 [dependencies]
 log = {version = "0.4", optional = true}
+tao = {version = "0.18", optional = true}
+
+[target."cfg(target_os = \"windows\")".dependencies.windows-sys]
+version = "0.45"
+optional = true
+features = [
+    "Win32_Foundation",
+    "Win32_UI_WindowsAndMessaging"
+]
+
+[dev-dependencies]
+serial_test = "*"
